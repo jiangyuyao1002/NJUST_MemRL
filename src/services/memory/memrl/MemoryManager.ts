@@ -103,11 +103,13 @@ export class MemoryManager {
 	 * Writes episodic entry and updates Q-values.
 	 */
 	afterRun(taskId: string, intent: string, stmSummary: string, reward: number): void {
+		console.error("[MemRL:afterRun] called, episodic=", !!this.episodic, "reward=", reward)
 		if (!this.episodic) return
 
 		this.episodic
 			.write(intent, stmSummary, reward)
 			.catch((err) => {
+				console.error("[MemRL:afterRun] write FAILED:", err)
 				logger.warn("MemoryManager", "afterRun write failed", err)
 			})
 			.finally(() => {

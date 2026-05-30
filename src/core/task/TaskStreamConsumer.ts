@@ -673,6 +673,24 @@ export async function finalizeStreamResponse(config: FinalizeConfig): Promise<Fi
 			reasoningMessage || undefined,
 		)
 		t.assistantMessageSavedToHistory = true
+
+		// MemRL: record assistant step to STM (best-effort, never blocks)
+		try {
+			const provider = t.hostRef?.deref()
+			const mm = provider?.getMemoryManager?.(t.cwd)
+			if (mm) {
+				const stm = mm.getStm(t.taskId)
+				const textSummary = assistantContent
+					.filter((b): b is { type: "text"; text: string } => b.type === "text")
+					.map((b) => b.text)
+					.join(" ")
+					.trim()
+					.slice(0, 200)
+				if (textSummary) stm.push("assistant", textSummary)
+			}
+		} catch {
+			// silent — STM population must never affect task flow
+		}
 	}
 
 	if (partialBlocks.length > 0) {

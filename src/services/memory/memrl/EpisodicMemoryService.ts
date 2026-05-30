@@ -94,6 +94,7 @@ export class EpisodicMemoryService {
 	 * Triggers LTM distillation callback every LTM_DISTILL_INTERVAL writes.
 	 */
 	async write(intent: string, stmSummary: string, reward: number): Promise<void> {
+		console.error("[MemRL:write] start, totalWrites before=", this.store.totalWrites, "loaded=", this.loaded)
 		await this.load()
 
 		const embedding = await this.embedder.embed(intent)
@@ -113,8 +114,10 @@ export class EpisodicMemoryService {
 
 		this.store.entries.push(entry)
 		this.store.totalWrites++
+		console.error("[MemRL:write] persisting, totalWrites=", this.store.totalWrites, "path=", this.primaryPath)
 
 		await this.persist()
+		console.error("[MemRL:write] done")
 
 		if (this.store.totalWrites % LTM_DISTILL_INTERVAL === 0) {
 			this.onDistillTrigger?.()

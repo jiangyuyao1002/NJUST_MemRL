@@ -1274,7 +1274,38 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 		const host = createCloudAgentHost(this as UnsafeAny as Parameters<typeof createCloudAgentHost>[0])
 		const { CloudAgentOrchestrator } = await import("./CloudAgentOrchestrator")
 		const orchestrator = new CloudAgentOrchestrator(host)
-		await orchestrator.run(userMessage, images)
+
+		// MemRL: inject dependencies and retrieve hints before running
+		const memrlProvider = this.hostRef.deref()
+		const memoryManager = memrlProvider?.getMemoryManager(this.cwd)
+		const memrlIntent = userMessage.slice(0, 500) || this.taskId
+		if (memoryManager) {
+			const embedder = memrlProvider && "getCurrentWorkspaceCodeIndexManager" in memrlProvider
+				? (memrlProvider as import("../../core/webview/ClineProvider").ClineProvider)
+					.getCurrentWorkspaceCodeIndexManager()
+					?.tryCreateEmbedder()
+				: undefined
+			memoryManager.updateDependencies(this.api, embedder)
+			try {
+				const { episodicHints, ltmRules } = await memoryManager.beforeRun(this.taskId, memrlIntent)
+				this.memrlEpisodicHints = episodicHints
+				this.memrlLtmRules = ltmRules
+				this.requestBuilder["systemPromptPartsCache"] = undefined
+			} catch { /* non-blocking */ }
+		}
+
+		try {
+			await orchestrator.run(userMessage, images)
+		} finally {
+			// MemRL: afterRun — guaranteed even on abort/error
+			if (memoryManager) {
+				const intent = this.getTaskIntent() || memrlIntent
+				const stm = memoryManager.getStm(this.taskId)
+				const stmSummary = stm.summarize()
+				const reward = this.taskCompleted ? 1.0 : 0.0
+				memoryManager.afterRun(this.taskId, intent, stmSummary, reward)
+			}
+		}
 	}
 
 	// Task Loop
@@ -1300,6 +1331,14 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 		// MemRL: inject dependencies then retrieve episodic hints and LTM rules
 		// Pass this.cwd explicitly so the correct workspace path is always used
 		const memoryManager = provider?.getMemoryManager(this.cwd)
+		// Extract intent directly from userContent — apiConversationHistory is still
+		// empty at this point (populated later by recursivelyMakeClineRequests).
+		const memrlIntent = userContent
+			.filter((b): b is { type: "text"; text: string } => b.type === "text" && "text" in b)
+			.map((b) => b.text)
+			.join(" ")
+			.trim()
+			.slice(0, 500) || this.taskId
 		if (memoryManager) {
 			// Try to get embedder from CodeIndexManager (best-effort, may be undefined)
 			const embedder = provider && "getCurrentWorkspaceCodeIndexManager" in provider
@@ -1309,9 +1348,8 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 				: undefined
 			memoryManager.updateDependencies(this.api, embedder)
 
-			const intent = this.getTaskIntent()
 			try {
-				const { episodicHints, ltmRules } = await memoryManager.beforeRun(this.taskId, intent)
+				const { episodicHints, ltmRules } = await memoryManager.beforeRun(this.taskId, memrlIntent)
 				this.memrlEpisodicHints = episodicHints
 				this.memrlLtmRules = ltmRules
 				// Invalidate system prompt cache so new hints are injected
@@ -1326,33 +1364,36 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 
 		this.emit(NJUST_AIEventName.TaskStarted)
 
-		while (!this.abort && !this.taskCompleted) {
-			const didEndLoop = await this.recursivelyMakeClineRequests(nextUserContent, includeFileDetails)
-			includeFileDetails = false
+		try {
+			while (!this.abort && !this.taskCompleted) {
+				const didEndLoop = await this.recursivelyMakeClineRequests(nextUserContent, includeFileDetails)
+				includeFileDetails = false
 
-			if (didEndLoop) {
-				// Only happens when max requests is hit and user denies
-				// resetting the count, or an unexpected error is caught.
-				break
+				if (didEndLoop) {
+					// Only happens when max requests is hit and user denies
+					// resetting the count, or an unexpected error is caught.
+					break
+				}
+
+				if (this.taskCompleted) {
+					// attempt_completion was accepted — stop without
+					// re-prompting the model.
+					break
+				}
+
+				nextUserContent = [{ type: "text", text: formatResponse.noToolsUsed() }]
 			}
-
-			if (this.taskCompleted) {
-				// attempt_completion was accepted — stop without
-				// re-prompting the model.
-				break
+		} finally {
+			// MemRL: afterRun — guaranteed to run even if task throws/aborts
+			if (memoryManager) {
+				// Prefer real history text; fall back to the intent extracted from userContent
+				const intent = this.getTaskIntent() || memrlIntent
+				const stm = memoryManager.getStm(this.taskId)
+				const stmSummary = stm.summarize()
+				// Reward: 1.0 on successful completion, 0.0 on abort/error
+				const reward = this.taskCompleted ? 1.0 : 0.0
+				memoryManager.afterRun(this.taskId, intent, stmSummary, reward)
 			}
-
-			nextUserContent = [{ type: "text", text: formatResponse.noToolsUsed() }]
-		}
-
-		// MemRL: afterRun — fire-and-forget, must not block task completion
-		if (memoryManager) {
-			const intent = this.getTaskIntent()
-			const stm = memoryManager.getStm(this.taskId)
-			const stmSummary = stm.summarize()
-			// Reward: 1.0 on successful completion, 0.0 on abort
-			const reward = this.taskCompleted ? 1.0 : 0.0
-			memoryManager.afterRun(this.taskId, intent, stmSummary, reward)
 		}
 	}
 
