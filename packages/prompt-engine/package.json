@@ -17,7 +17,7 @@
 		"@njust-ai-cj/config-eslint": "workspace:^",
 		"@njust-ai-cj/config-typescript": "workspace:^",
 		"@types/node": "20.x",
-		"@vitest/coverage-v8": "^3.2.3",
+		"@vitest/coverage-v8": "^4.1.7",
 		"vitest": "^3.2.3"
 	}
 }
