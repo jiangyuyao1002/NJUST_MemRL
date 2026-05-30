@@ -6,24 +6,18 @@ node_modules
 package-lock.json
 coverage/
 mock/
-
 .DS_Store
-
 # IDEs
 .idea
-
 # Builds
 bin/
 *.vsix
-
 # Local prompts and rules
 /local-prompts
 AGENTS.local.md
-
 # Test environment
 .test_env
 .vscode-test/
-
 # Docs - ignore all except examples, adr, baseline, runbooks
 docs/*
 !docs/examples/
@@ -34,12 +28,10 @@ docs/*
 !docs/baseline/**
 !docs/runbooks/
 !docs/runbooks/**
-
 # Dotenv
 .env
 .env.*
 !.env.*.sample
-
 # Private keys / certificates
 *.pem
 *.key
@@ -47,63 +39,47 @@ docs/*
 *.pfx
 *.cert
 *.crt
-
 # Logging
 logs
 *.log
-
 # Vite development
 .vite-port
-
 # Turborepo
 .turbo
-
 # IntelliJ and Qodo plugin folders
 .idea/
 .qodo/
 .vercel
 .njust-ai/mcp.json
-
 # Claude Code local skills and settings
 .claude/skills/
 .claude/settings.local.json
 .claude/worktrees/
-
 # Cangjie symbol index (auto-generated)
 .cangjie-index/
-
-# Duplicate corpus copy under src/ (created by prepublish sync; repo root corpus stays canonical)
+# Duplicate corpus copy under src/
 src/bundled-cangjie-corpus/CangjieCorpus-1.0.0/
-
 # Qdrant
 qdrant_storage/
-
 # Architect plans
 plans/
-
-# Spec Kit - track templates and config, ignore generated specs
+# Spec Kit
 .specify/specs/
-
 njust-ai-cli-*.tar.gz*
 cangjie_lsp_*.txt
 log.txt
 .aider*
-
 # Temp lint output
 temp-lint-*.txt
 eslint-report*.json
-
 # Crash dumps
 *.stackdump
-
 # Devflow planning and specs
 devflow/
-
 # Local agent workspace artifacts
 .agents/
 .opencode/
 .reasonix/
-
 # Local analysis outputs and credentials
 .scannerwork/
 sonar-project.properties

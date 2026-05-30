@@ -40,4 +40,8 @@ export interface SystemPromptSettings {
 	 * Cangjie Dev 动态语料块，而无需切换模式。
 	 */
 	lastUserMessageForCangjieHint?: string
+	/** MemRL: Formatted episodic hints retrieved from past task episodes. */
+	memrlEpisodicHints?: string
+	/** MemRL: Formatted learned LTM rule cards retrieved for the current intent. */
+	memrlLtmRules?: string
 }

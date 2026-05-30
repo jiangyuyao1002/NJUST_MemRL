@@ -48,6 +48,7 @@ import { CodeIndexManager } from "../../services/code-index/manager"
 
 import type { IndexProgressUpdate } from "../../services/code-index/interfaces/manager"
 import { SkillsManager } from "../../services/skills/SkillsManager"
+import { MemoryManager } from "../../services/memory/memrl/MemoryManager"
 
 import { setTtsEnabled, setTtsSpeed } from "../../utils/tts"
 import { getWorkspacePath } from "../../utils/path"
@@ -149,6 +150,7 @@ export class ClineProvider
 	private _workspaceTracker?: WorkspaceTracker // workSpaceTracker read-only for access outside this class
 	public mcpHub?: IMcpHubService // Must be public to satisfy IWebviewStateHost
 	protected skillsManager?: SkillsManager
+	private _memoryManager?: MemoryManager
 	private taskCreationCallback: (task: Task) => void
 	private readonly assistantPresentationSubscription: DisposableLike
 	private currentWorkspacePath: string | undefined
@@ -977,6 +979,20 @@ export class ClineProvider
 
 	public getSkillsManager(): SkillsManager | undefined {
 		return this.skillsManager
+	}
+
+	/**
+	 * Lazily initialise and return the MemRL MemoryManager.
+	 * @param cwd - Explicit workspace path (preferred). Falls back to getWorkspacePath().
+	 */
+	public getMemoryManager(cwd?: string): MemoryManager | undefined {
+		const resolvedCwd = cwd || getWorkspacePath()
+		if (!resolvedCwd) return undefined
+		// Re-create if the workspace path changed
+		if (!this._memoryManager || (this._memoryManager as unknown as { workspaceDir: string }).workspaceDir !== resolvedCwd) {
+			this._memoryManager = new MemoryManager(resolvedCwd)
+		}
+		return this._memoryManager
 	}
 
 	/**
