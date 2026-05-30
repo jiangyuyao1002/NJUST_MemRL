@@ -186,6 +186,11 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 	 */
 	public cachedToolDefinitions?: { mode: string; tools: UnsafeAny[]; time: number }
 
+	/** MemRL: episodic hints retrieved before this task run, injected into system prompt. */
+	public memrlEpisodicHints: string = ""
+	/** MemRL: learned LTM rule cards retrieved before this task run, injected into system prompt. */
+	public memrlLtmRules: string = ""
+
 	/**
 	 * The mode associated with this task. Persisted across sessions
 	 * to maintain user context when reopening tasks from history.
@@ -1567,6 +1572,30 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 			},
 		})
 
+		// MemRL: inject dependencies then retrieve episodic hints and LTM rules
+		// Pass this.cwd explicitly so the correct workspace path is always used
+		const memoryManager = provider?.getMemoryManager(this.cwd)
+		if (memoryManager) {
+			// Try to get embedder from CodeIndexManager (best-effort, may be undefined)
+			const embedder = provider && "getCurrentWorkspaceCodeIndexManager" in provider
+				? (provider as import("../../core/webview/ClineProvider").ClineProvider)
+					.getCurrentWorkspaceCodeIndexManager()
+					?.tryCreateEmbedder()
+				: undefined
+			memoryManager.updateDependencies(this.api, embedder)
+
+			const intent = this.getTaskIntent()
+			try {
+				const { episodicHints, ltmRules } = await memoryManager.beforeRun(this.taskId, intent)
+				this.memrlEpisodicHints = episodicHints
+				this.memrlLtmRules = ltmRules
+				// Invalidate system prompt cache so new hints are injected
+				this.requestBuilder["systemPromptPartsCache"] = undefined
+			} catch {
+				// Non-blocking: failures must not prevent task execution
+			}
+		}
+
 		let nextUserContent = userContent
 		let includeFileDetails = true
 
@@ -1590,6 +1619,32 @@ export class Task extends EventEmitter<TaskEvents> implements TaskLike {
 
 			nextUserContent = [{ type: "text", text: formatResponse.noToolsUsed() }]
 		}
+
+		// MemRL: afterRun — fire-and-forget, must not block task completion
+		if (memoryManager) {
+			const intent = this.getTaskIntent()
+			const stm = memoryManager.getStm(this.taskId)
+			const stmSummary = stm.summarize()
+			// Reward: 1.0 on successful completion, 0.0 on abort
+			const reward = this.taskCompleted ? 1.0 : 0.0
+			memoryManager.afterRun(this.taskId, intent, stmSummary, reward)
+		}
+	}
+
+	/** Extract a plain-text task intent from the initial user content for MemRL. */
+	private getTaskIntent(): string {
+		const history = this.apiConversationHistory
+		for (let i = 0; i < history.length; i++) {
+			const m = history[i] as { role: string; content: string | Array<{ type: string; text?: string }> }
+			if (m.role !== "user") continue
+			if (typeof m.content === "string") return m.content.slice(0, 500)
+			if (Array.isArray(m.content)) {
+				for (const block of m.content) {
+					if (block.type === "text" && block.text) return block.text.slice(0, 500)
+				}
+			}
+		}
+		return this.taskId
 	}
 
 	public async recursivelyMakeClineRequests(

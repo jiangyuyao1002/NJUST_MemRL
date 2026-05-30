@@ -305,6 +305,18 @@ export class CodeIndexManager {
 	}
 
 	/**
+	 * Create a fresh embedder instance using the current configuration.
+	 * Returns undefined if the service factory is not yet initialised.
+	 */
+	public tryCreateEmbedder(): import("./interfaces/embedder").IEmbedder | undefined {
+		try {
+			return this._serviceFactory?.createEmbedder()
+		} catch {
+			return undefined
+		}
+	}
+
+	/**
 	 * Cleans up the manager instance.
 	 */
 	public dispose(): void {

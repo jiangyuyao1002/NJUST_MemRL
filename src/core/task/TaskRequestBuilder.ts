@@ -216,6 +216,8 @@ export class TaskRequestBuilder {
 					turnIndex: Math.max(0, this.task.apiConversationHistory.length - 1),
 					enableTurnAwarePromptPruning: (state as Record<string, UnsafeAny>)?.enableTurnAwarePromptPruning ?? true,
 					lastUserMessageForCangjieHint: lastUserForCangjie,
+					memrlEpisodicHints: this.task.memrlEpisodicHints,
+					memrlLtmRules: this.task.memrlLtmRules,
 				},
 				undefined, // todoList
 				this.task.api.getModel().id,
