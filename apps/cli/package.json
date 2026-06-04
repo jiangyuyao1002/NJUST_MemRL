@@ -25,7 +25,7 @@
 		"@njust-ai/core": "workspace:^",
 		"@njust-ai/types": "workspace:^",
 		"@njust-ai/vscode-shim": "workspace:^",
-		"@trpc/client": "^11.8.1",
+		"@trpc/client": "^11.17.0",
 		"@vscode/ripgrep": "^1.15.9",
 		"commander": "^12.1.0",
 		"cross-spawn": "^7.0.6",
