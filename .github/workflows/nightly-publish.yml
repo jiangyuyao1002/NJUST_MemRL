@@ -43,7 +43,7 @@ jobs:
       - name: Build VSIX
         run: pnpm vsix:nightly # Produces bin/njust-ai-nightly-0.0.[count].vsix
       - name: Upload VSIX artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nightly-vsix
           path: bin/*.vsix
