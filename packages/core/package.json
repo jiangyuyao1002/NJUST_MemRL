@@ -38,7 +38,7 @@
 	"devDependencies": {
 		"@njust-ai/config-eslint": "workspace:^",
 		"@njust-ai/config-typescript": "workspace:^",
-		"@types/node": "20.x",
+		"@types/node": "25.x",
 		"@types/shell-quote": "^1.7.5",
 		"@types/uuid": "^10.0.0",
 		"vitest": "^4.1.8"
