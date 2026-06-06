@@ -29,7 +29,7 @@
 		"@njust-ai/types": "workspace:^",
 		"esbuild": "^0.25.0",
 		"execa": "^9.5.2",
-		"ignore": "^7.0.3",
+		"ignore": "^7.0.5",
 		"openai": "^5.12.2",
 		"shell-quote": "^1.8.2",
 		"uuid": "^11.1.0",
