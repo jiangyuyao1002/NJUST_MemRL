@@ -11,7 +11,7 @@
 	},
 	"dependencies": {
 		"@njust-ai/types": "workspace:^",
-		"@opentelemetry/api": "^1.9.0"
+		"@opentelemetry/api": "^1.9.1"
 	},
 	"devDependencies": {
 		"@njust-ai/config-eslint": "workspace:^",
