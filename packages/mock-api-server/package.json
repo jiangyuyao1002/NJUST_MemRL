@@ -16,7 +16,7 @@
 		"@njust-ai/config-eslint": "workspace:^",
 		"@njust-ai/config-typescript": "workspace:^",
 		"@types/node": "20.x",
-		"tsx": "^4.19.3",
+		"tsx": "^4.23.12",
 		"typescript": "^5.8.3",
 		"vitest": "^4.1.8"
 	}
