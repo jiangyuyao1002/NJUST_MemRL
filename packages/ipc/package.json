@@ -11,7 +11,7 @@
 	},
 	"dependencies": {
 		"@njust-ai/types": "workspace:^",
-		"node-ipc": "^12.0.0"
+		"node-ipc": "^14.0.0"
 	},
 	"devDependencies": {
 		"@njust-ai/config-eslint": "workspace:^",
